@@ -51,9 +51,30 @@ class SagemakerStack(Stack):
 
 
 #------------------------------------------------------------------#
+        model = sagemaker.CfnModel(self, "MyCfnModel",
+          execution_role_arn=execution_role.role_arn,
+          containers=[
+            sagemaker.CfnModel.ContainerDefinitionProperty(
+              image="763104351884.dkr.ecr.eu-central-1.amazonaws.com/mxnet-inference:1.9.0-gpu-py38",
+          #    environment=env,
+              mode="SingleModel",
+              model_data_source = sagemaker.CfnModel.ModelDataSourceProperty(
+                s3_data_source = sagemaker.CfnModel.S3DataSourceProperty(
+                compression_type="None",
+                s3_data_type="S3Prefix",
+                s3_uri="s3://jumpstart-cache-prod-eu-central-1/mxnet-od/mxnet-od-ssd-512-mobilenet1-0-coco/artifacts/inference-prepack/v1.0.0/")))],
+          model_name= "zpac028-model")
 
-        #jumpstart_model = JumpStartSageMakerEndpoint(self,'MyCfnModel',
-         # model=JumpStartModel.object-detection-201516,
-         # ccept_eula=True,
-         # instance_type=SageMakerInstanceType.ML_G5_2_XLARGE,
-         # endpoint_name="zpac028-endpoint")
+        endpoint_config = sagemaker.CfnEndpointConfig(self, "MyCfnEndpointConfig",
+          endpoint_config_name= "zpac028-endpoint-config",
+          production_variants=[
+            sagemaker.CfnEndpointConfig.ProductionVariantProperty(
+              model_name=model.attr_model_name,
+              variant_name="AllTraffic",
+              initial_variant_weight=1,
+              initial_instance_count=1,
+              instance_type="ml.p3.2xlarge")])
+
+        endpoint = sagemaker.CfnEndpoint(self, "MyCfnEndpoint",
+                                endpoint_name="zpac028-endpoint",
+                                endpoint_config_name=endpoint_config.attr_endpoint_config_name)
